@@ -1,9 +1,8 @@
-import { StyleSheet, Text, View, ScrollView, Pressable, Alert } from 'react-native'
+import { StyleSheet, Text, View, ScrollView, Pressable, Alert, Image } from 'react-native'
 import React, { useState } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { wp, hp } from '../../helpers/common'
 import { theme } from '../../constants/theme'
-import { Image } from 'expo-image'
 import Header from '../../components/Header'
 import { getUserImageSrc } from '../../services/imageService'
 import { useAuth } from '../../contexts/AuthContext'
@@ -14,6 +13,8 @@ import Button from '../../components/Button'
 import { updateUser } from '../../services/userService'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
+import { updloadFile } from '../../services/imageService'
+
 
 const EditProfile = () => {
 
@@ -41,15 +42,17 @@ const EditProfile = () => {
     }
   },[currentUser])
 
-  const onPickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.7,
-    });
+  const onPickImage = async (isImage) => {
+    const mediaConfig = {
+          mediaType: isImage ? 'photo' : 'video',  // Use mediaType as 'photo' or 'video'
+          allowsEditing: true,
+          aspect: isImage ? [4, 3] : undefined,  // aspect ratio only for images
+          quality: isImage ? 0.7 : undefined,    // quality only for images
+        };
+      
+        let result = await ImagePicker.launchImageLibraryAsync(mediaConfig);
 
-    if(!result.cancelled){
+    if(!result.canceled){
       setUser({...user, image: result.assets[0]});
     }
   }
@@ -64,7 +67,12 @@ const EditProfile = () => {
     setLoading(true);
 
     if(typeof image == 'object'){
+      // upload image
+      let imageRes = await updloadFile('profiles', image?.uri, true);
+      if(imageRes.success) userData.image = imageRes.data;
+      else userData.image = null;
       
+
     }
     // update user
     const res = await updateUser(currentUser?.id, userData);
